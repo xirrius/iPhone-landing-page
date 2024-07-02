@@ -17,6 +17,9 @@ const VideoCarousel = () => {
     isPlaying: false,
   });
   const [loadedData, setLoadedData] = useState([]);
+  
+  //NEW
+  const [isSmallDevice, setIsSmallDevice] = useState(false);
 
   const { isEnd, isLastVideo, isPlaying, videoId, startPlay } = video;
 
@@ -31,12 +34,28 @@ const VideoCarousel = () => {
       },
     });
 
-    gsap.to('#slider', {
-      transform: `translateX(${-100 * videoId}%)`,
-      duration: 2,
-      ease: 'power2.inOut'
-    })
-  }, [isEnd, videoId]);
+    //NEW
+    if(!isSmallDevice) {
+      gsap.to('#slider', {
+        transform: `translateX(${-100 * videoId}%)`,
+        duration: 2,
+        ease: 'power2.inOut'
+      })
+    }
+  }, [isEnd, videoId, isSmallDevice]);
+
+  //NEW
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallDevice(window.innerWidth <= 760)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+  
 
   useEffect(() => {
     if (loadedData.length > 3) {
@@ -63,12 +82,20 @@ const VideoCarousel = () => {
             currentProgress = progress;
 
             gsap.to(videoDivRef.current[videoId], {
-              width:
-                window.innerWidth < 760
-                  ? "10vw"
-                  : window.innerWidth < 1200
-                  ? "10vw"
-                  : "4vw",
+
+              // width:
+              //   window.innerWidth < 760
+              //     ? "10vw"
+              //     : window.innerWidth < 1200
+              //     ? "10vw"
+              //     : "4vw",
+
+              //NEW
+              width: isSmallDevice
+                ? "10vw"
+                : window.innerWidth < 1200
+                ? "10vw"
+                : "4vw",
             });
 
             gsap.to(span[videoId], {
@@ -104,7 +131,7 @@ const VideoCarousel = () => {
       }
     }
 
-  }, [videoId, startPlay]);
+  }, [videoId, startPlay, isSmallDevice]);
 
   const handleProcess = (type, i) => {
     switch (type) {
@@ -132,11 +159,19 @@ const VideoCarousel = () => {
     <>
       <div className="flex items-center">
         {hightlightsSlides.map((list, i) => (
-          <div key={list.id} id="slider" className="sm:pr-20 pr-10">
+          <div
+            key={list.id}
+            id="slider"
+            className={`sm:pr-20 pr-10 ${
+              isSmallDevice && i !== videoId ? "hidden" : ""
+            }`}
+          >
             <div className="video-carousel_container">
               <div className="w-full h-full flex-center rounded-3xl overflow-hidden bg-black">
                 <video
-                className={`${list.id === 2 && 'translate-x-44'} pointer-events-none`}
+                  className={`${
+                    list.id === 2 && "translate-x-44"
+                  } pointer-events-none`}
                   id="video"
                   playsInline={true}
                   preload="auto"
@@ -150,7 +185,9 @@ const VideoCarousel = () => {
                   }}
                   onLoadedMetadata={(e) => handleLoadedMetaData(i, e)}
                   onEnded={() => {
-                    i !== 3? handleProcess('video-end', i): handleProcess('video-last')
+                    i !== 3
+                      ? handleProcess("video-end", i)
+                      : handleProcess("video-last");
                   }}
                 >
                   <source src={list.video} type="video/mp4" />
